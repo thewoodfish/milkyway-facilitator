@@ -79,12 +79,17 @@ app.post("/settle", authenticateFacilitator, async (req, res) => {
 const activeNetworks = getSupportedNetworkIds();
 
 if (activeNetworks.length === 0) {
-  console.error("ERROR: No networks configured. Set at least ARBITRUM_RPC or ARBITRUM_SEPOLIA_RPC.");
+  console.error("ERROR: No networks configured. Set at least ARBITRUM_RPC, BASE_RPC, or ETHEREUM_RPC.");
   process.exit(1);
 }
 
 if (!process.env.FACILITATOR_PRIVATE_KEY) {
   console.error("ERROR: FACILITATOR_PRIVATE_KEY not set.");
+  process.exit(1);
+}
+
+if (!process.env.FACILITATOR_SECRET && process.env.NODE_ENV === "production") {
+  console.error("ERROR: FACILITATOR_SECRET must be set in production.");
   process.exit(1);
 }
 

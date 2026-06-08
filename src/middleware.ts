@@ -16,7 +16,7 @@ export function authenticateFacilitator(
 
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("WARNING: FACILITATOR_SECRET not set in production");
+      return res.status(503).json({ error: "Facilitator misconfigured — FACILITATOR_SECRET not set" });
     }
     return next();
   }
