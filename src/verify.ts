@@ -11,8 +11,7 @@ import {
 // Replace with Redis for multi-instance production
 const usedNonces = new Set<string>();
 
-// 0.25 USDC — below this the gas cost exceeds any protocol fee
-const MIN_SETTLEMENT_AMOUNT = BigInt(250_000);
+// const MIN_SETTLEMENT_AMOUNT = BigInt(250_000); // 0.25 USDC floor — disabled
 
 const TRANSFER_TYPES = {
   TransferWithAuthorization: [
@@ -65,12 +64,9 @@ export function verifyPayment(req: VerifyRequest): VerifyResponse {
       return { isValid: false, invalidReason: "Payment not yet valid" };
     }
 
-    if (BigInt(authorization.value) < MIN_SETTLEMENT_AMOUNT) {
-      return {
-        isValid:       false,
-        invalidReason: `Amount below minimum: 0.25 USDC required`
-      };
-    }
+    // if (BigInt(authorization.value) < MIN_SETTLEMENT_AMOUNT) {
+    //   return { isValid: false, invalidReason: `Amount below minimum: 0.25 USDC required` };
+    // }
 
     if (BigInt(authorization.value) < BigInt(req.amount)) {
       return {
