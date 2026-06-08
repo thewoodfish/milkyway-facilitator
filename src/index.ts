@@ -2,7 +2,7 @@ import express    from "express";
 import dotenv     from "dotenv";
 import { verifyPayment }  from "./verify";
 import { settlePayment }  from "./settle";
-import { rateLimiter, authenticateFacilitator } from "./middleware";
+import { rateLimiter, authenticateFacilitator, checkAddressRateLimit } from "./middleware";
 import {
   NETWORKS,
   getSupportedNetworkIds
@@ -63,6 +63,17 @@ app.post("/settle", authenticateFacilitator, async (req, res) => {
       success: false,
       error:   "Missing required fields: payment, network"
     });
+  }
+
+  // Per-address rate limit — parsed here so we can reject before queuing
+  try {
+    const payload = JSON.parse(Buffer.from(payment, "base64").toString("utf8"));
+    const from    = payload?.payload?.authorization?.from;
+    if (from && !checkAddressRateLimit(from)) {
+      return res.status(429).json({ success: false, error: "Settlement rate limit exceeded for this address" });
+    }
+  } catch {
+    // Malformed payload — let settlePayment surface the error
   }
 
   res.status(202).json({ success: true, message: "Settlement queued" });

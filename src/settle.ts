@@ -15,7 +15,9 @@ const USDC_ABI = [
     uint256 validBefore,
     bytes32 nonce,
     bytes calldata signature
-  ) external`
+  ) external`,
+  `function authorizationState(address authorizer, bytes32 nonce) external view returns (uint8)`,
+  `function balanceOf(address account) external view returns (uint256)`
 ];
 
 // Cache providers per network — don't create new ones per request
@@ -56,6 +58,20 @@ export async function settlePayment(req: SettleRequest): Promise<SettleResponse>
     const { authorization, signature } = payload.payload;
     const signer = getSigner(networkId);
     const usdc   = new ethers.Contract(network.usdc, USDC_ABI, signer);
+
+    // Pre-validate on-chain before spending gas — drops bad auths for free
+    try {
+      const state: bigint = await usdc.authorizationState(authorization.from, authorization.nonce);
+      if (Number(state) !== 0) {
+        return { success: false, error: "Authorization already used or cancelled on-chain" };
+      }
+      const balance: bigint = await usdc.balanceOf(authorization.from);
+      if (balance < BigInt(authorization.value)) {
+        return { success: false, error: "Insufficient USDC balance" };
+      }
+    } catch (preErr: any) {
+      console.warn(`[${network.name}] Pre-validation RPC failed, proceeding optimistically: ${preErr.message}`);
+    }
 
     const tx = await usdc.transferWithAuthorization(
       authorization.from,
